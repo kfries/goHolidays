@@ -1,0 +1,186 @@
+package goCadence
+
+// This file is designed to add holiday recognition support for the goCadence module.
+//
+// The purpose of the code in this file is not to manage how to deal with holidays... but instead identify when they
+// occur so that the encapsulating code can respond appropriately
+
+import (
+	"time"
+)
+
+var Holidays HolidayList = UsFederalHolidays
+
+type HolidayList struct {
+	items []Holiday
+}
+
+func (h *HolidayList) Add(newHoliday Holiday) {
+	h.items = append(h.items, newHoliday)
+}
+
+func (h *HolidayList) Match(target time.Time) bool {
+	for _, holidayDef := range h.items {
+		if holidayDef.Match(target) {
+			return true
+		}
+	}
+
+	return false
+}
+
+type Holiday interface {
+	Match(target time.Time) bool
+	String() string
+	Describe() string
+}
+
+type FixedHoliday struct {
+	Name        string
+	Description string
+	Month       time.Month
+	Day         int
+}
+
+func (fh FixedHoliday) String() string {
+	return fh.Name
+}
+
+func (fh FixedHoliday) Describe() string {
+	return fh.Description
+}
+
+func (fh FixedHoliday) Match(target time.Time) bool {
+	matchMonth := target.Month() == fh.Month
+	matchDay := target.Day() == fh.Day
+
+	return matchMonth && matchDay
+}
+
+type FloatingHoliday struct {
+	Name        string
+	Description string
+	Ordinal     int
+	DayOfWeek   time.Weekday
+	Month       time.Month
+}
+
+func (fh FloatingHoliday) String() string {
+	return fh.Name
+}
+
+func (fh FloatingHoliday) Describe() string {
+	return fh.Description
+}
+
+func (fh FloatingHoliday) Match(target time.Time) bool {
+	var minDay, maxDay int
+
+	if fh.Ordinal == -1 {
+		maxDay = time.Date(target.Year(), fh.Month+1, 0, 0, 0, 0, 0, time.UTC).Day() + 1
+		minDay = maxDay - 8
+	} else {
+		minDay = (fh.Ordinal - 1) * 7
+		maxDay = minDay + 8
+	}
+
+	matchMonth := target.Month() == fh.Month
+	matchDayOfWeek := target.Weekday() == fh.DayOfWeek
+	matchDayRange := target.Day() > minDay && target.Day() < maxDay
+
+	return matchMonth && matchDayOfWeek && matchDayRange
+}
+
+// Predefined HolidayList
+
+var MLKHoliday = FloatingHoliday{
+	"US:Martin Luther King Holiday",
+	"Second Monday in January",
+	2,
+	time.Monday,
+	time.January,
+}
+
+var PresidentsDay = FloatingHoliday{
+	"US:Presidents Day",
+	"Second Monday in February",
+	12,
+	time.Monday,
+	time.February,
+}
+
+var MemorialDay = FloatingHoliday{
+	"US:Memorial Day",
+	"Last Monday in May",
+	-1,
+	time.Monday,
+	time.May,
+}
+
+var Juneteenth = FixedHoliday{
+	"Juneteenth",
+	"June 19th",
+	time.June,
+	19,
+}
+
+var IndependenceDay = FixedHoliday{
+	"US:Independence Day",
+	"4th of July",
+	time.July,
+	4,
+}
+
+var LaborDay = FloatingHoliday{
+	"US:Labor Day",
+	"First Monday in September",
+	1,
+	time.Monday,
+	time.September,
+}
+
+var ColumbusDay = FloatingHoliday{
+	"Columbus Day / Indigenous People Day",
+	"Second Monday in October",
+	2,
+	time.Monday,
+	time.October,
+}
+
+var VeteransDay = FixedHoliday{
+	"Veterans Day",
+	"11th of November",
+	time.November,
+	11,
+}
+
+var Thanksgiving = FloatingHoliday{
+	"US:Thanksgiving",
+	"4th thursday in November",
+	4,
+	time.Thursday,
+	time.November,
+}
+
+var Christmas = FixedHoliday{
+	"Christmas",
+	"25th of December",
+	time.December,
+	25,
+}
+
+// Predefined HolidayList
+
+var UsFederalHolidays = HolidayList{[]Holiday{
+	NewYearsDay,
+	MLKHoliday,
+	PresidentsDay,
+	MemorialDay,
+	Juneteenth,
+	IndependenceDay,
+	LaborDay,
+	ColumbusDay,
+	VeteransDay,
+	Thanksgiving,
+	Christmas,
+}}
