@@ -1,4 +1,4 @@
-module com.thefrieses.kevin.goHolidays
+module github.com/kfries/goHolidays
 
 go 1.19
 
